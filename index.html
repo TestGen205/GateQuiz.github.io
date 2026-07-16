@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논리 게이트 게임</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --card-color: #252538;
+            --accent-color: #cba6f7;
+            --text-color: #cdd6f4;
+            --btn-color: #89b4fa;
+            --btn-hover: #b4befe;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            background-color: var(--card-color);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1, h2 {
+            color: var(--accent-color);
+        }
+
+        .gate-intro-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .gate-card {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            text-align: left;
+        }
+
+        /* 게이트 도형 컨테이너 */
+        .gate-symbol-container {
+            width: 80px;
+            height: 50px;
+            background-color: #313244;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid #45475a;
+        }
+
+        .gate-icon {
+            width: 65px;
+            height: 40px;
+            color: var(--accent-color);
+        }
+
+        .quiz-box {
+            background: rgba(255,255,255,0.02);
+            border: 2px dashed #45475a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .circuit-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 25px 0;
+            background: #11111b;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .input-val { color: #f38ba8; }
+        .output-val { color: #a6e3a1; }
+        
+        /* 깜빡이는 타겟 게이트 애니메이션 */
+        .pulse-gate {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        /* 세련된 메인 액션 버튼 (시작 / 다시하기 전용) */
+        .primary-btn {
+            background: linear-gradient(135deg, var(--btn-color), var(--accent-color));
+            color: #11111b;
+            border: none;
+            padding: 14px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(137, 180, 250, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px auto;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(203, 166, 247, 0.45);
+            filter: brightness(1.1);
+        }
+
+        .primary-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(203, 166, 247, 0.3);
+        }
+
+        /* 보기용 일반 선택 버튼 스타일 */
+        .option-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--btn-color);
+            color: #11111b;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-btn:hover {
+            background-color: var(--btn-hover);
+            transform: translateY(-2px);
+        }
+
+        .option-btn .gate-icon {
+            color: #11111b;
+            width: 60px;
+            height: 35px;
+        }
+
+        .nav-footer {
+            margin-top: 30px;
+            text-align: center; /* 버튼 정렬 가운데로 변경 */
+        }
+
+        .timer {
+            font-size: 18px;
+            color: #f9e2af;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="screen-intro" class="screen active">
+        <h2>🧐 논리 게이트 학습하기</h2>
+        <p>문제를 풀기 전, 아래 게이트의 기호와 규칙을 기억하세요!</p>
+        
+        <div class="gate-intro-container">
+            <!-- AND 카드 -->
+            <div class="gate-card">
+                <div class="gate-symbol-container">
+                    <svg class="gate-icon" viewBox="0 0 60 40">
+                        <path d="M 10 5 L 30 5 A 15 15 0 0 1 30 35 L 10 35 Z" fill="none" stroke="currentColor" stroke-width="3"/>
+                        <line x1="0" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="2"/>
+                        <line x1="0" y1="28" x2="10" y2="28" stroke="currentColor" stroke-width="2"/>
+                        <line x1="45" y1="20" x2="60" y2="20" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <div>
+                    <strong>AND 게이트</strong><br>
+                    두 입력이 <span style="color:#a6e3a1">모두 1일 때만</span> 결과가 1이 됩니다.
+                </div>
+            </div>
+            
+            <!-- OR 카드 -->
+            <div class="gate-card">
+                <div class="gate-symbol-container">
+                    <svg class="gate-icon" viewBox="0 0 60 40">
+                        <path d="M 10 5 C 18 10 18 30 10 35 C 25 35 40 28 48 20 C 40 12 25 5 10 5 Z" fill="none" stroke="currentColor" stroke-width="3"/>
+                        <line x1="0" y1="12" x2="13" y2="12" stroke="currentColor" stroke-width="2"/>
+                        <line x1="0" y1="28" x2="13" y2="28" stroke="currentColor" stroke-width="2"/>
+                        <line x1="48" y1="20" x2="60" y2="20" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <div>
+                    <strong>OR 게이트</strong><br>
+                    두 입력 중 <span style="color:#a6e3a1">하나라도 1이면</span> 결과가 1이 됩니다.
+                </div>
+            </div>
+            
+            <!-- NOT 카드 -->
+            <div class="gate-card">
+                <div class="gate-symbol-container">
+                    <svg class="gate-icon" viewBox="0 0 60 40">
+                        <polygon points="15,8 15,32 38,20" fill="none" stroke="currentColor" stroke-width="3"/>
+                        <circle cx="43" cy="20" r="4" fill="none" stroke="currentColor" stroke-width="3"/>
+                        <line x1="0" y1="20" x2="15" y2="20" stroke="currentColor" stroke-width="2"/>
+                        <line x1="47" y1="20" x2="60" y2="20" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <div>
+                    <strong>NOT 게이트</strong><br>
+                    입력을 <span style="color:#f38ba8">반대로</span> 뒤집습니다. (1은 0으로, 0은 1로)
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-footer">
+            <button class="primary-btn" onclick="startGame()">게임 시작하기 (문제 풀기) 🚀</button>
+        </div>
+    </div>
+
+    <div id="screen-quiz" class="screen">
+        <div class="timer">⏱️ 진행 시간: <span id="time-elapsed">0.0</span>초</div>
+        <h2>Step <span id="current-step">1</span>: 알맞은 게이트 찾기</h2>
+        <p>아래 연산 결과가 나오기 위해 빈칸 <span style="color: var(--accent-color);">?</span>에 들어갈 게이트는 무엇일까요?</p>
+
+        <div class="quiz-box">
+            <div class="circuit-diagram" id="circuit-display">
+                </div>
+        </div>
+
+        <div class="options-container" id="options-display">
+            </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <h2>🎉 축하합니다! 통과하셨습니다!</h2>
+        <p>모든 논리 게이트 문제를 정확하게 해결하셨습니다.</p>
+        <div style="font-size: 24px; margin: 30px 0; font-weight: bold; color: #a6e3a1;">
+            총 소요 시간: <span id="final-time">0.0</span>초
+        </div>
+        <button class="primary-btn" onclick="restartGame()">다시 도전하기 🔄</button>
+    </div>
+</div>
+
+<script>
+    const gateSvgs = {
+        AND: `<svg class="gate-icon" viewBox="0 0 60 40"><path d="M 10 5 L 30 5 A 15 15 0 0 1 30 35 L 10 35 Z" fill="none" stroke="currentColor" stroke-width="3"/><line x1="0" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="2"/><line x1="0" y1="28" x2="10" y2="28" stroke="currentColor" stroke-width="2"/><line x1="45" y1="20" x2="60" y2="20" stroke="currentColor" stroke-width="2"/></svg>`,
+        OR: `<svg class="gate-icon" viewBox="0 0 60 40"><path d="M 10 5 C 18 10 18 30 10 35 C 25 35 40 28 48 20 C 40 12 25 5 10 5 Z" fill="none" stroke="currentColor" stroke-width="3"/><line x1="0" y1="12" x2="13" y2="12" stroke="currentColor" stroke-width="2"/><line x1="0" y1="28" x2="13" y2="28" stroke="currentColor" stroke-width="2"/><line x1="48" y1="20" x2="60" y2="20" stroke="currentColor" stroke-width="2"/></svg>`,
+        NOT: `<svg class="gate-icon" viewBox="0 0 60 40"><polygon points="15,8 15,32 38,20" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="43" cy="20" r="4" fill="none" stroke="currentColor" stroke-width="3"/><line x1="0" y1="20" x2="15" y2="20" stroke="currentColor" stroke-width="2"/><line x1="47" y1="20" x2="60" y2="20" stroke="currentColor" stroke-width="2"/></svg>`
+    };
+
+    const quizData = [
+        {
+            step: 1,
+            inputs: [1, 0],
+            output: 0,
+            answer: "AND",
+            options: ["AND 게이트", "OR 게이트", "NOT 게이트"],
+            type: "binary" 
+        },
+        {
+            step: 2,
+            inputs: [1, 0],
+            output: 1,
+            answer: "OR",
+            options: ["AND 게이트", "OR 게이트", "NOT 게이트"],
+            type: "binary"
+        },
+        {
+            step: 3,
+            inputs: [1, 1, 1], // A=1, B=1, C=1
+            output: 0,
+            answer: "AND", // 중간 상태: [1, 1, 0]이 최종 ?에 진입 -> Y=0을 위한 게이트는 AND
+            options: ["AND 게이트", "OR 게이트", "NOT 게이트"],
+            type: "complex" 
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let timerInterval = null;
+    let startTime = null;
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function startGame() {
+        currentQuestionIndex = 0;
+        showScreen('screen-quiz');
+        startTimer();
+        loadQuestion();
+    }
+
+    function startTimer() {
+        startTime = performance.now();
+        timerInterval = setInterval(() => {
+            const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('time-elapsed').innerText = elapsed;
+        }, 100);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        return ((performance.now() - startTime) / 1000).toFixed(1);
+    }
+
+    function loadQuestion() {
+        const currentQuiz = quizData[currentQuestionIndex];
+        document.getElementById('current-step').innerText = currentQuiz.step;
+
+        const circuitDiv = document.getElementById('circuit-display');
+        
+        if (currentQuiz.type === "binary") {
+            circuitDiv.innerHTML = `
+                <svg width="100%" height="120" viewBox="0 0 350 120" style="color: var(--text-color);">
+                    <defs>
+                        <g id="target-gate-2">
+                            <rect x="0" y="0" width="50" height="40" rx="5" fill="none" stroke="var(--accent-color)" stroke-width="3" stroke-dasharray="4" class="pulse-gate"/>
+                            <text x="25" y="26" font-size="18" font-weight="bold" fill="var(--accent-color)" stroke="none" text-anchor="middle">?</text>
+                        </g>
+                    </defs>
+                    <text x="20" y="45" font-size="16" font-weight="bold" fill="#f38ba8" text-anchor="start">Input A: ${currentQuiz.inputs[0]}</text>
+                    <text x="20" y="85" font-size="16" font-weight="bold" fill="#f38ba8" text-anchor="start">Input B: ${currentQuiz.inputs[1]}</text>
+                    
+                    <line x1="95" y1="40" x2="150" y2="40" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="95" y1="80" x2="150" y2="80" stroke="#89b4fa" stroke-width="2"/>
+                    
+                    <use href="#target-gate-2" x="150" y="40"/>
+                    
+                    <line x1="200" y1="60" x2="250" y2="60" stroke="#89b4fa" stroke-width="2"/>
+                    <text x="260" y="65" font-size="16" font-weight="bold" fill="#a6e3a1" text-anchor="start">Output: ${currentQuiz.output}</text>
+                </svg>
+            `;
+        } else if (currentQuiz.type === "complex") {
+            circuitDiv.innerHTML = `
+                <svg width="100%" height="250" viewBox="0 0 500 250" style="color: var(--text-color);">
+                    <defs>
+                        <g id="schematic-and">
+                            <path d="M 0,0 L 25,0 A 15,15 0 0,1 25,30 L 0,30 Z" fill="#252538" stroke="currentColor" stroke-width="3"/>
+                        </g>
+                        <g id="schematic-not">
+                            <polygon points="0,0 0,30 25,15" fill="#252538" stroke="currentColor" stroke-width="3"/>
+                            <circle cx="29" cy="15" r="4" fill="#252538" stroke="currentColor" stroke-width="3"/>
+                        </g>
+                        <g id="schematic-target-3">
+                            <path d="M 0,0 L 30,0 A 25,25 0 0,1 30,50 L 0,50 Z" fill="none" stroke="var(--accent-color)" stroke-width="3" stroke-dasharray="4" class="pulse-gate"/>
+                            <text x="18" y="32" font-size="18" font-weight="bold" fill="var(--accent-color)" stroke="none" text-anchor="middle">?</text>
+                        </g>
+                    </defs>
+                    
+                    <!-- 입력 레이블 -->
+                    <text x="20" y="48" font-size="15" font-weight="bold" fill="#f38ba8" text-anchor="start">A = ${currentQuiz.inputs[0]}</text>
+                    <text x="20" y="120" font-size="15" font-weight="bold" fill="#f38ba8" text-anchor="start">B = ${currentQuiz.inputs[1]}</text>
+                    <text x="20" y="205" font-size="15" font-weight="bold" fill="#f38ba8" text-anchor="start">C = ${currentQuiz.inputs[2]}</text>
+                    
+                    <!-- 회로 도선 배선 -->
+                    <line x1="70" y1="43" x2="140" y2="43" stroke="#89b4fa" stroke-width="2"/>
+                    
+                    <line x1="70" y1="115" x2="110" y2="115" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="110" y1="115" x2="110" y2="57" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="110" y1="57" x2="140" y2="57" stroke="#89b4fa" stroke-width="2"/>
+                    
+                    <!-- B 도선에서 타겟 게이트로 직결되는 도선 -->
+                    <line x1="110" y1="115" x2="330" y2="115" stroke="#89b4fa" stroke-width="2"/>
+                    <circle cx="110" cy="115" r="4" fill="#89b4fa" /> 
+                    
+                    <line x1="70" y1="200" x2="140" y2="200" stroke="#89b4fa" stroke-width="2"/>
+                    
+                    <!-- 첫 번째 레이어 게이트 배치 (텍스트 레이블 삭제!) -->
+                    <use href="#schematic-and" x="140" y="35"/>
+                    <use href="#schematic-not" x="140" y="185"/>
+                    
+                    <!-- 중간 연결 도선 -->
+                    <line x1="180" y1="50" x2="270" y2="50" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="270" y1="50" x2="270" y2="100" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="270" y1="100" x2="330" y2="100" stroke="#89b4fa" stroke-width="2"/>
+                    
+                    <line x1="173" y1="200" x2="270" y2="200" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="270" y1="200" x2="270" y2="130" stroke="#89b4fa" stroke-width="2"/>
+                    <line x1="270" y1="130" x2="330" y2="130" stroke="#89b4fa" stroke-width="2"/>
+                    
+                    <!-- 최종 타겟 질문 게이트 ? -->
+                    <use href="#schematic-target-3" x="330" y="90"/>
+                    
+                    <!-- 최종 출력 레이블 -->
+                    <line x1="385" y1="115" x2="435" y2="115" stroke="#89b4fa" stroke-width="2"/>
+                    <text x="445" y="120" font-size="16" font-weight="bold" fill="#a6e3a1" text-anchor="start">Y = ${currentQuiz.output}</text>
+                </svg>
+            `;
+        }
+
+        const optionsDiv = document.getElementById('options-display');
+        optionsDiv.innerHTML = '';
+        currentQuiz.options.forEach(opt => {
+            const gateType = opt.includes("AND") ? "AND" : opt.includes("OR") ? "OR" : "NOT";
+            
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `
+                <span>${opt}</span>
+                ${gateSvgs[gateType]}
+            `;
+            btn.onclick = () => checkAnswer(gateType);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedGate) {
+        const currentQuiz = quizData[currentQuestionIndex];
+        
+        if (selectedGate === currentQuiz.answer) {
+            alert("정답입니다! 다음 단계로 이동합니다.");
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                const totalTime = stopTimer();
+                document.getElementById('final-time').innerText = totalTime;
+                showScreen('screen-result');
+            }
+        } else {
+            alert("틀렸습니다! 회로 흐름을 다시 차근차근 생각해보세요.");
+        }
+    }
+
+    function restartGame() {
+        showScreen('screen-intro');
+    }
+</script>
+
+</body>
+</html>
