@@ -21,11 +21,12 @@ p{line-height:1.5}
 .btn{background:linear-gradient(135deg,var(--btn),var(--accent));color:var(--on);border:0;padding:14px 28px;font-size:1.05rem;font-weight:700;border-radius:12px;cursor:pointer;margin:8px 4px;font-family:inherit}
 .btn:active{transform:scale(.97)}
 .link{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.9rem;cursor:pointer;margin-top:10px;font-family:inherit}
-.lv{display:block;width:100%;text-align:left;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;cursor:pointer;color:var(--text);font-family:inherit}
-.lv:hover,.lv:active{border-color:var(--accent)}
-.lv b{font-size:1.15rem}.lv span{display:block;color:var(--muted);font-size:.9rem;margin-top:4px}
 .top{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:var(--muted)}
-.badge{background:var(--accent);color:var(--on);padding:2px 12px;border-radius:99px;font-weight:700}
+.hbtn{background:var(--accent);color:var(--on);border:0;padding:6px 14px;border-radius:99px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit}
+.hbtn:active{transform:scale(.96)}
+.hbtn:disabled{opacity:.5;cursor:default}
+.hbox{display:none;text-align:left;background:var(--panel);border-left:4px solid var(--accent);border-radius:8px;padding:8px 12px;margin:0 0 10px;font-size:.9rem;line-height:1.6}
+.hbox b{color:var(--in1)}
 .bar{height:6px;background:var(--panel);border-radius:9px;margin:8px 0 14px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--btn),var(--accent));transition:width .3s}
 .ask{font-size:1.1rem;font-weight:700;margin:6px 0 12px}
@@ -48,6 +49,7 @@ p{line-height:1.5}
 .opt svg{width:54px;height:48px}
 .opt.sel{outline:4px solid var(--in1);transform:translateY(-4px)}
 .ghost{position:fixed;z-index:99;pointer-events:none;transform:translate(-50%,-50%) scale(1.1);opacity:.9}
+#gdesc{display:none;margin-top:12px;cursor:pointer}
 .tip{font-size:.8rem;color:var(--muted);margin:14px 0 0}
 </style>
 </head>
@@ -57,34 +59,28 @@ p{line-height:1.5}
     <h2>🧐 논리 게이트 학습하기</h2>
     <p>문제를 풀기 전에 게이트의 기호와 규칙을 기억하세요.</p>
     <div id="gate-cards"></div>
-    <button class="btn" onclick="show('s-level')">난이도 선택하기 🚀</button>
-  </div>
-
-  <div id="s-level" class="screen">
-    <h2>난이도를 고르세요</h2>
-    <button class="lv" onclick="startLevel('easy')"><b>🌱 쉬움</b><span>게이트 1개 · AND, OR, NOT · 5문제</span></button>
-    <button class="lv" onclick="startLevel('normal')"><b>🔥 보통</b><span>게이트 2개 연결 · NOR 추가 · 5문제</span></button>
-    <button class="lv" onclick="startLevel('hard')"><b>⚡ 어려움</b><span>게이트 3개 조합 · 입력 3~4개 · 6문제</span></button>
-    <button class="link" onclick="show('s-intro')">← 게이트 다시 보기</button>
+    <button class="btn" onclick="startLevel()">문제 풀기 🚀</button>
   </div>
 
   <div id="s-quiz" class="screen">
-    <div class="top"><span class="badge" id="lv-badge"></span><span id="step"></span></div>
+    <div class="top"><button class="hbtn" id="hbtn" onclick="showHint()">💡 힌트</button><span id="step"></span></div>
     <div class="bar"><i id="bar"></i></div>
+    <div class="hbox" id="hbox"></div>
     <div class="ask" id="ask"></div>
     <div class="stage" id="stage"></div>
     <div class="fb" id="fb"></div>
     <div class="hint" id="hint"></div>
     <div class="opts" id="opts"></div>
-    <p class="tip">💡 게이트를 끌어다 놓거나, 게이트를 누른 뒤 빈칸을 눌러도 돼요. 채운 칸을 누르면 비워져요.</p>
-    <button class="link" onclick="show('s-level')">← 난이도 바꾸기</button>
+    <div class="gcard" id="gdesc" onclick="this.style.display='none'"></div>
+    <p class="tip">💡 게이트를 끌어다 놓거나, 게이트를 누른 뒤 빈칸을 눌러도 돼요. 게이트를 두 번 누르면 설명이 나와요. 채운 칸을 누르면 비워져요.</p>
+    <button class="link" onclick="show('s-intro')">← 게이트 다시 보기</button>
   </div>
 
   <div id="s-result" class="screen">
     <h2>🎉 통과했어요!</h2>
     <p id="res-text"></p>
-    <button class="btn" onclick="startLevel(lvKey)">같은 난이도 다시</button>
-    <button class="btn" onclick="show('s-level')">난이도 선택</button>
+    <button class="btn" onclick="startLevel()">다시 하기</button>
+    <button class="btn" onclick="show('s-intro')">게이트 다시 보기</button>
   </div>
 </div>
 
@@ -108,22 +104,16 @@ const GATES=[
  ['OR','두 입력 중 <span class="hl">하나라도 1이면</span> 결과가 1이 됩니다.'],
  ['NOT','입력을 <span class="hb">반대로</span> 뒤집습니다. (1은 0으로, 0은 1로)'],
  ['NOR','OR의 <span class="hb">반대</span>입니다. 두 입력이 모두 0일 때만 1이 됩니다.']];
-document.getElementById('gate-cards').innerHTML=GATES.map(([g,t])=>`<div class="gcard">${icon(g,'ico')}<div><strong>${g} 게이트</strong><br>${t}</div></div>`).join('');
+const gateCard=([g,t],cls)=>`${icon(g,cls)}<div><strong>${g} 게이트</strong><br>${t}</div>`;
+document.getElementById('gate-cards').innerHTML=GATES.map(x=>`<div class="gcard">${gateCard(x,'ico')}</div>`).join('');
 
 // ---- 논리 ----
 const fn=(g,a,b)=>g==='AND'?(a&b):g==='OR'?(a|b):g==='NOR'?((a|b)^1):(a^1);
 // 한 입력 칸에 2입력 게이트를 넣으면 같은 신호가 두 입력 모두로 들어갑니다 (예: NOR(x,x)=NOT x)
 const TPL={
- T1:{H:140,in:[['A',40,47],['B',40,83]],slots:[{x:150,y:35,src:['i0','i1']}],out:[340,65]},
- T2:{H:140,in:[['A',40,65]],slots:[{x:150,y:35,src:['i0']}],out:[340,65]},
  T3:{H:140,in:[['A',40,47],['B',40,83]],slots:[{x:110,y:35,src:['i0','i1']},{x:230,y:35,src:['s0']}],out:[372,65]},
- T4:{H:135,in:[['A',40,30],['B',40,66],['C',40,102]],slots:[{x:110,y:18,src:['i0','i1']},{x:240,y:54,src:['s0','i2']}],out:[372,84]},
- T5:{H:185,in:[['A',40,22],['B',40,58],['C',40,140]],slots:[{x:100,y:10,src:['i0','i1']},{x:100,y:110,src:['i2']},{x:240,y:60,src:['s0','s1']}],out:[372,90]},
- T6:{H:185,in:[['A',40,22],['B',40,58],['C',40,122],['D',40,158]],slots:[{x:100,y:10,src:['i0','i1']},{x:100,y:110,src:['i2','i3']},{x:240,y:60,src:['s0','s1']}],out:[372,90]}};
-const LEVELS={
- easy:{name:'🌱 쉬움',n:5,tpls:['T1','T2'],pool:['AND','OR','NOT'],max:2},
- normal:{name:'🔥 보통',n:5,tpls:['T3','T4'],pool:['AND','OR','NOT','NOR'],max:4},
- hard:{name:'⚡ 어려움',n:6,tpls:['T5','T6'],pool:['AND','OR','NOT','NOR'],max:6}};
+ T4:{H:135,in:[['A',40,30],['B',40,66],['C',40,102]],slots:[{x:110,y:18,src:['i0','i1']},{x:240,y:54,src:['s0','i2']}],out:[372,84]}};
+const L={n:5,tpls:['T3','T4'],pool:['AND','OR','NOT','NOR'],max:4};
 
 function evalQ(t,ins,gs){
   const v={};ins.forEach((x,i)=>v['i'+i]=x);
@@ -132,17 +122,17 @@ function evalQ(t,ins,gs){
 }
 const rnd=a=>a[Math.floor(Math.random()*a.length)];
 const combos=ls=>ls.reduce((acc,l)=>acc.flatMap(a=>l.map(x=>[...a,x])),[[]]);
-function makeQ(L,seen){
+function makeQ(seen){
   let q;
   for(let tr=0;tr<200;tr++){
     const t=rnd(L.tpls),T=TPL[t];
     const lists=T.slots.map(s=>L.pool.filter(g=>g!=='NOT'||s.src.length===1));
     const ins=T.in.map(()=>Math.random()<.5?1:0);
     const hidden=lists.map(rnd),out=evalQ(t,ins,hidden);
-    const sols=combos(lists).filter(c=>evalQ(t,ins,c)===out).length;
-    q={t,ins,out,sols,pool:[...new Set(lists.flat())]};
+    const all=combos(lists).filter(c=>evalQ(t,ins,c)===out);
+    q={t,ins,out,sols:all.length,ans:rnd(all),pool:[...new Set(lists.flat())]};
     const sig=t+ins.join('')+out;
-    if(sols<=(t==='T2'?1:L.max)&&!seen.has(sig)){seen.add(sig);return q;}
+    if(all.length<=L.max&&!seen.has(sig)){seen.add(sig);return q;}
   }
   return q;
 }
@@ -181,21 +171,33 @@ function drawSlot(dz,gate,state){
 }
 
 // ---- 게임 흐름 ----
-let lvKey='easy',Q=[],qi=0,placed=[],sel=null,locked=false;
+let Q=[],qi=0,placed=[],sel=null,locked=false,hintN=0,lastTap={g:null,t:0};
 const $=id=>document.getElementById(id);
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');}
-function startLevel(k){
-  lvKey=k;const L=LEVELS[k],seen=new Set();
-  Q=Array.from({length:L.n},()=>makeQ(L,seen));qi=0;show('s-quiz');load();
+function startLevel(){
+  const seen=new Set();
+  Q=Array.from({length:L.n},()=>makeQ(seen));qi=0;show('s-quiz');load();
 }
 function load(){
-  const q=Q[qi],L=LEVELS[lvKey],T=TPL[q.t];
-  $('lv-badge').textContent=L.name;$('step').textContent=`${qi+1} / ${Q.length}`;$('bar').style.width=(qi/Q.length*100)+'%';
+  const q=Q[qi],T=TPL[q.t];
+  $('step').textContent=`${qi+1} / ${Q.length}`;$('bar').style.width=(qi/Q.length*100)+'%';
   $('ask').innerHTML=`빈칸을 채워서 결과를 <b class="${q.out?'':'z'}">${q.out}</b> 으로 만드세요`;
   $('stage').innerHTML=renderCircuit(q);
   $('stage').querySelectorAll('.dropzone').forEach(d=>drawSlot(d,null));
   placed=new Array(T.slots.length).fill(null);locked=false;sel=null;$('stage').classList.remove('armed');
+  hintN=0;$('hbox').style.display='none';$('hbox').innerHTML='';$('hbtn').disabled=false;$('hbtn').textContent='💡 힌트';
+  $('gdesc').style.display='none';
   $('fb').textContent='';updHint();renderOpts(q);
+}
+function showHint(){
+  const q=Q[qi];if(locked||hintN>=q.ans.length)return;
+  hintN++;
+  const box=$('hbox');box.style.display='block';
+  box.innerHTML='💡 이 순서로 넣으면 정답이에요<br>'+q.ans.slice(0,hintN).map((g,i)=>`${i+1}번째 칸(왼쪽부터) → <b>${g}</b>`).join('<br>');
+  if(hintN>=q.ans.length){$('hbtn').disabled=true;$('hbtn').textContent='💡 힌트 끝';}
+}
+function showGate(g){
+  const d=$('gdesc');d.innerHTML=gateCard(GATES.find(x=>x[0]===g),'ico');d.style.display='flex';
 }
 function updHint(){const n=placed.length;$('hint').textContent=n>1?`${placed.filter(Boolean).length} / ${n} 칸 채움`:'';}
 function renderOpts(q){
@@ -219,8 +221,11 @@ function bindDrag(it,g){
     };
     const up=ev=>{
       const dz=moved?dzAt(ev.clientX,ev.clientY):null;end();
-      if(moved){if(dz)place(+dz.dataset.i,g);}
-      else{const was=sel===g;clearSel();if(!was){sel=g;it.classList.add('sel');$('stage').classList.add('armed');}}
+      if(moved){if(dz)place(+dz.dataset.i,g);return;}
+      const now=Date.now();
+      if(lastTap.g===g&&now-lastTap.t<400){lastTap={g:null,t:0};clearSel();showGate(g);return;}
+      lastTap={g,t:now};
+      const was=sel===g;clearSel();if(!was){sel=g;it.classList.add('sel');$('stage').classList.add('armed');}
     };
     const cn=()=>end();
     it.addEventListener('pointermove',mv);it.addEventListener('pointerup',up);it.addEventListener('pointercancel',cn);
@@ -246,7 +251,7 @@ function check(){
   if(evalQ(q.t,q.ins,placed)===q.out){   // 결과값이 맞으면 어떤 조합이든 정답
     dzs.forEach((d,i)=>drawSlot(d,placed[i],'ok'));
     fb.style.color='var(--in1)';fb.textContent='✅ 정답입니다!'+(q.sols>1?' (정답이 여러 개인 문제였어요)':'');
-    setTimeout(()=>{qi++;if(qi<Q.length)load();else{$('res-text').textContent=`${LEVELS[lvKey].name} 난이도의 모든 문제를 해결했어요.`;show('s-result');}},1000);
+    setTimeout(()=>{qi++;if(qi<Q.length)load();else{$('res-text').textContent='모든 문제를 해결했어요.';show('s-result');}},1000);
   }else{
     stage.classList.add('shake');fb.style.color='var(--bad)';fb.textContent='❌ 결과가 맞지 않아요. 다시 시도해보세요!';
     setTimeout(()=>{stage.classList.remove('shake');dzs.forEach(d=>drawSlot(d,null));placed=new Array(placed.length).fill(null);fb.textContent='';updHint();locked=false;},900);
