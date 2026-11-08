@@ -27,6 +27,7 @@ p{line-height:1.5}
 .hbtn:disabled{opacity:.5;cursor:default}
 .hbox{display:none;text-align:left;background:var(--panel);border-left:4px solid var(--accent);border-radius:8px;padding:8px 12px;margin:0 0 10px;font-size:.9rem;line-height:1.6}
 .hbox b{color:var(--in1)}
+.hbox small{color:var(--muted)}
 .bar{height:6px;background:var(--panel);border-radius:9px;margin:8px 0 14px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--btn),var(--accent));transition:width .3s}
 .ask{font-size:1.1rem;font-weight:700;margin:6px 0 12px}
@@ -44,13 +45,14 @@ p{line-height:1.5}
 .armed .dropzone rect{stroke-width:4}
 .fb{min-height:26px;font-weight:700;margin-top:10px}
 .hint{font-size:.8rem;color:var(--muted);min-height:18px}
+.hint.guide{margin-top:4px}
 .opts{display:flex;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap}
-.opt{background:var(--btn);color:var(--on);border-radius:12px;padding:10px 6px;font-weight:700;width:84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;box-shadow:0 3px 8px rgba(0,0,0,.2)}
+.opt{background:var(--btn);color:var(--on);border-radius:12px;padding:10px 6px;font-weight:700;width:84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y;box-shadow:0 3px 8px rgba(0,0,0,.2)}
 .opt svg{width:54px;height:48px}
 .opt.sel{outline:4px solid var(--in1);transform:translateY(-4px)}
 .ghost{position:fixed;z-index:99;pointer-events:none;transform:translate(-50%,-50%) scale(1.1);opacity:.9}
 #gdesc{display:none;margin-top:12px;cursor:pointer}
-.tip{font-size:.8rem;color:var(--muted);margin:14px 0 0}
+.tip{font-size:.8rem;color:var(--muted);margin:14px 0 0;line-height:1.6}
 </style>
 </head>
 <body>
@@ -68,11 +70,12 @@ p{line-height:1.5}
     <div class="hbox" id="hbox"></div>
     <div class="ask" id="ask"></div>
     <div class="stage" id="stage"></div>
-    <div class="fb" id="fb"></div>
+    <div class="fb" id="fb" aria-live="polite"></div>
     <div class="hint" id="hint"></div>
+    <div class="hint guide">🔍 게이트를 두 번 클릭(터치는 두 번 탭)하면 설명을 볼 수 있어요</div>
     <div class="opts" id="opts"></div>
     <div class="gcard" id="gdesc" onclick="this.style.display='none'"></div>
-    <p class="tip">💡 게이트를 끌어다 놓거나, 게이트를 누른 뒤 빈칸을 눌러도 돼요. 게이트를 두 번 누르면 설명이 나와요. 채운 칸을 누르면 비워져요.</p>
+    <p class="tip">💡 게이트를 끌어다 놓거나, 게이트를 누른 뒤 빈칸을 눌러도 돼요. 채운 칸을 누르면 비워져요.</p>
     <button class="link" onclick="show('s-intro')">← 게이트 다시 보기</button>
   </div>
 
@@ -193,30 +196,49 @@ function showHint(){
   const q=Q[qi];if(locked||hintN>=q.ans.length)return;
   hintN++;
   const box=$('hbox');box.style.display='block';
-  box.innerHTML='💡 이 순서로 넣으면 정답이에요<br>'+q.ans.slice(0,hintN).map((g,i)=>`${i+1}번째 칸(왼쪽부터) → <b>${g}</b>`).join('<br>');
+  box.innerHTML='💡 이 순서로 넣으면 정답이에요<br>'+q.ans.slice(0,hintN).map((g,i)=>`${i+1}번째 칸(왼쪽부터) → <b>${g}</b>`).join('<br>')
+    +(q.sols>1?'<br><small>※ 정답이 여러 개인 문제예요. 결과만 맞으면 다른 조합도 정답이에요.</small>':'');
   if(hintN>=q.ans.length){$('hbtn').disabled=true;$('hbtn').textContent='💡 힌트 끝';}
 }
 function showGate(g){
   const d=$('gdesc');d.innerHTML=gateCard(GATES.find(x=>x[0]===g),'ico');d.style.display='flex';
 }
 function updHint(){const n=placed.length;$('hint').textContent=n>1?`${placed.filter(Boolean).length} / ${n} 칸 채움`:'';}
+function selectGate(it,g){
+  const was=sel===g;clearSel();
+  if(!was){sel=g;it.classList.add('sel');$('stage').classList.add('armed');}
+}
 function renderOpts(q){
   const box=$('opts');box.innerHTML='';
   [...q.pool].sort(()=>Math.random()-.5).forEach(g=>{
     const it=document.createElement('div');it.className='opt';it.dataset.g=g;
-    it.innerHTML=`${icon(g,'')}<span>${g}</span>`;bindDrag(it,g);box.appendChild(it);
+    it.innerHTML=`${icon(g,'')}<span>${g}</span>`;
+    bindDrag(it,g);box.appendChild(it);
   });
 }
 const dzAt=(x,y)=>{const e=document.elementFromPoint(x,y);return e&&e.closest?e.closest('.dropzone'):null;};
 function hover(dz){document.querySelectorAll('.dropzone.hover').forEach(d=>d.classList.remove('hover'));if(dz)dz.classList.add('hover');}
+// 마우스: 바로 드래그 / 터치: 0.2초 길게 누른 뒤 끌면 드래그, 바로 밀면 페이지 스크롤
 function bindDrag(it,g){
   it.addEventListener('pointerdown',e=>{
     if(locked)return;
-    const sx=e.clientX,sy=e.clientY;let ghost=null,moved=false;
+    const touch=e.pointerType==='touch';
+    const sx=e.clientX,sy=e.clientY;
+    let ghost=null,moved=false,ready=!touch,timer=null;
+    if(touch)timer=setTimeout(()=>{ready=true;if(navigator.vibrate)navigator.vibrate(10);},200);
+    const block=ev=>{if(ready&&ev.cancelable)ev.preventDefault();};
+    document.addEventListener('touchmove',block,{passive:false});
     try{it.setPointerCapture(e.pointerId);}catch(_){}
-    const end=()=>{it.removeEventListener('pointermove',mv);it.removeEventListener('pointerup',up);it.removeEventListener('pointercancel',cn);if(ghost)ghost.remove();hover(null);};
+    const end=()=>{
+      clearTimeout(timer);
+      document.removeEventListener('touchmove',block);
+      it.removeEventListener('pointermove',mv);it.removeEventListener('pointerup',up);it.removeEventListener('pointercancel',cn);
+      if(ghost)ghost.remove();hover(null);
+    };
     const mv=ev=>{
-      if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>8){moved=true;ghost=it.cloneNode(true);ghost.className='opt ghost';document.body.appendChild(ghost);}
+      const far=Math.hypot(ev.clientX-sx,ev.clientY-sy)>8;
+      if(!ready){if(far)clearTimeout(timer);return;}   // 0.2초 전에 움직이면 스크롤로 넘김
+      if(!moved&&far){moved=true;ghost=it.cloneNode(true);ghost.className='opt ghost';document.body.appendChild(ghost);}
       if(moved){ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';hover(dzAt(ev.clientX,ev.clientY));}
     };
     const up=ev=>{
@@ -225,19 +247,20 @@ function bindDrag(it,g){
       const now=Date.now();
       if(lastTap.g===g&&now-lastTap.t<400){lastTap={g:null,t:0};clearSel();showGate(g);return;}
       lastTap={g,t:now};
-      const was=sel===g;clearSel();if(!was){sel=g;it.classList.add('sel');$('stage').classList.add('armed');}
+      selectGate(it,g);
     };
-    const cn=()=>end();
+    const cn=()=>end();   // 스크롤이 시작되면 pointercancel로 정리됨
     it.addEventListener('pointermove',mv);it.addEventListener('pointerup',up);it.addEventListener('pointercancel',cn);
   });
 }
 function clearSel(){sel=null;document.querySelectorAll('.opt.sel').forEach(o=>o.classList.remove('sel'));$('stage').classList.remove('armed');}
-$('stage').addEventListener('click',e=>{
-  const dz=e.target.closest&&e.target.closest('.dropzone');if(!dz||locked)return;
+function slotAct(dz){
+  if(!dz||locked)return;
   const i=+dz.dataset.i;
-  if(sel){place(i,sel);clearSel();}
+  if(sel){const g=sel;clearSel();place(i,g);}
   else if(placed[i]){placed[i]=null;drawSlot(dz,null);updHint();}
-});
+}
+$('stage').addEventListener('click',e=>slotAct(e.target.closest&&e.target.closest('.dropzone')));
 function place(i,g){
   if(locked)return;
   const dz=$('stage').querySelector(`.dropzone[data-i="${i}"]`),fb=$('fb');
