@@ -43,7 +43,15 @@ p{line-height:1.5}
 .tt th{font-size:.9rem;color:var(--muted);font-weight:700;padding:3px}
 .tt td{padding:10px 2px;border-top:1px solid var(--line);text-align:center}
 .tt td.o1{color:var(--in1)}
-@media (max-width:480px){.tt{width:124px;padding:12px 6px}.tt .ico{width:56px;height:49px}.tt strong{font-size:1.05rem}.tt table{font-size:1.05rem}.tt th{font-size:.75rem}.tt td{padding:8px 2px}}
+@media (max-width:600px){
+ .tt{width:auto;flex-direction:row;justify-content:center;gap:14px;box-shadow:none;background:var(--panel);border-radius:14px;padding:10px 12px;margin-top:10px}
+ .tt .ico{width:56px;height:49px;flex:none}
+ .tt .nm{display:flex;flex-direction:column;align-items:center;gap:4px}
+ .tt strong{font-size:1.05rem}
+ .tt table{width:auto;font-size:1.05rem}
+ .tt th{font-size:.75rem;padding:4px 8px;text-align:left}
+ .tt td{padding:6px 12px}
+}
 .stage svg{width:100%;max-width:680px;height:auto;display:block;margin:0 auto}
 .stage.shake{animation:shake .4s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
@@ -82,7 +90,7 @@ p{line-height:1.5}
     <div class="stage" id="stage"></div>
     <div class="fb" id="fb" aria-live="polite"></div>
     <div class="hint" id="hint"></div>
-    <div class="hint guide">🔍 게이트를 한 번 누르면 오른쪽에 진리표가 나와요 (표를 누르면 닫혀요)</div>
+    <div class="hint guide">🔍 게이트를 한 번 누르면 진리표가 나와요 (표를 누르면 닫혀요)</div>
     <div class="opts" id="opts"></div>
     <p class="tip">💡 게이트를 끌어다 놓거나, 게이트를 누른 뒤 빈칸을 눌러도 돼요. 채운 칸을 누르면 비워져요.</p>
     <button class="link" onclick="show('s-intro')">← 게이트 다시 보기</button>
@@ -188,7 +196,7 @@ function drawSlot(dz,gate,state){
 // ---- 게임 흐름 ----
 let Q=[],qi=0,placed=[],sel=null,locked=false,hintN=0;
 const $=id=>document.getElementById(id);
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');if(id!=='s-quiz')hideTable();}
 function startLevel(){
   const seen=new Set();
   Q=Array.from({length:L.n},(_,i)=>i===L.n-1?makeQ(seen,L.last,L.maxLast):makeQ(seen,L.tpls,L.max));qi=0;show('s-quiz');load();
@@ -212,14 +220,29 @@ function showHint(){
     +(q.sols>1?'<br><small>※ 정답이 여러 개인 문제예요. 결과만 맞으면 다른 조합도 정답이에요.</small>':'');
   if(hintN>=q.ans.length){$('hbtn').disabled=true;$('hbtn').textContent='💡 힌트 끝';}
 }
+const mq=window.matchMedia('(max-width:600px)');
+let ttGate=null;
+// PC: 게임 창 오른쪽 바깥 / 모바일: 회로 바로 아래(회로 크기를 줄이지 않음)
+function placeTT(){const t=$('tt');if(mq.matches)$('stage').after(t);else document.querySelector('.wrap').appendChild(t);}
 function showTable(g){
-  const rows=[[0,0],[0,1],[1,0],[1,1]];
-  const head='<tr><th colspan="2">입력</th><th>출력</th></tr>';
-  const body=rows.map(r=>{const o=fn(g,r[0],r[1]);return `<tr>${r.map(v=>`<td>${v}</td>`).join('')}<td class="${o?'o1':''}">${o}</td></tr>`;}).join('');
-  $('tt').innerHTML=`${icon(g,'ico')}<strong>${g}</strong><table>${head}${body}</table>`;
+  ttGate=g;placeTT();
+  const rows=[[0,0],[0,1],[1,0],[1,1]],o=rows.map(r=>fn(g,r[0],r[1]));
+  let tbl;
+  if(mq.matches){   // 모바일: 가로로 눕힌 표
+    tbl='<table>'+
+      `<tr><th>입력</th>${rows.map(r=>`<td>${r[0]}</td>`).join('')}</tr>`+
+      `<tr><th>입력</th>${rows.map(r=>`<td>${r[1]}</td>`).join('')}</tr>`+
+      `<tr><th>출력</th>${o.map(v=>`<td class="${v?'o1':''}">${v}</td>`).join('')}</tr></table>`;
+    $('tt').innerHTML=`<div class="nm">${icon(g,'ico')}<strong>${g}</strong></div>${tbl}`;
+  }else{
+    const head='<tr><th colspan="2">입력</th><th>출력</th></tr>';
+    const body=rows.map((r,i)=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="${o[i]?'o1':''}">${o[i]}</td></tr>`).join('');
+    $('tt').innerHTML=`${icon(g,'ico')}<strong>${g}</strong><table>${head}${body}</table>`;
+  }
   $('tt').classList.add('on');
 }
-function hideTable(){$('tt').classList.remove('on');}
+function hideTable(){ttGate=null;$('tt').classList.remove('on');}
+mq.addEventListener('change',()=>{if(ttGate)showTable(ttGate);});
 $('tt').addEventListener('click',hideTable);
 function updHint(){const n=placed.length;$('hint').textContent=n>1?`${placed.filter(Boolean).length} / ${n} 칸 채움`:'';}
 function selectGate(it,g){
